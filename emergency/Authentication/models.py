@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from django_countries.fields import CountryField
 from cloudinary.models import CloudinaryField
 import uuid
-
+from .estate_code_generator import generate_short_id
 
 
 class CustomUserManager(UserManager):
@@ -47,19 +47,17 @@ class CustomUserManager(UserManager):
 
 # Create your models here.
 class User(AbstractUser):
-    username = models.CharField(max_length=30, null=True)
+    username = None
     name = models.CharField(max_length=250, verbose_name="Full Name", blank=False, null=True)
     house_address = models.CharField(max_length=500, unique=True, blank=False, null=True)
     estate_name= models.CharField(max_length=250, blank=False, null=True)
-    estate = models.ForeignKey('Estate', on_delete=models.CASCADE, null=True, blank=True)
     email = models.EmailField(_('email address'), unique=True)
     tenant_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, null=True, blank=True)
     profile_image = models.ImageField(upload_to= "profile_image/", null=True)
     date_created = models.DateTimeField(auto_now_add=True)
     is_user = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
-    is_estate_admin = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
     is_verify = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'email'
@@ -77,12 +75,13 @@ class User(AbstractUser):
 
 
 class Estate(models.Model):
-    # member = models.ForeignKey(User, on_delete=models.CASCADE)
+    member = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     estate_name = models.CharField(max_length=200, unique=True, blank=False)
     estate_profile_image = models.ImageField(upload_to='estate/', null=True)
     estate_id = models.UUIDField(default=uuid.uuid4, editable=False,  unique=True, null=True, blank=True)
     estate_address = models.CharField(max_length=400, unique=True, blank=False)
     estate_country = CountryField()
+    public_id = models.CharField(max_length=15, default=generate_short_id, unique=True)
     date_created = models.DateTimeField(auto_now_add=True)
 
 

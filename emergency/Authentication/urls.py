@@ -3,16 +3,24 @@ from django.conf import settings
 from django.conf.urls.static import static
 from .views import (
     EstateRegistration, 
-    UserRegistration, login_user, VerifyUserEmail, 
-    User_Email_Verification_Token, signout, EstateAdminRegistration,
-    PasswordReset, ListEstateAPIView, UserAPIView, ListEstateAdminAPIView
+    UserRegistration, VerifyUserEmail, 
+    User_Email_Verification_Token, EstateAdminRegistration,
+    PasswordReset, ListEstateAPIView, UserAPIView, ListEstateAdminAPIView,
+    MyTokenObtainPairView, LogoutView
+)
+
+from rest_framework_simplejwt.views import (
+    TokenRefreshView,
 )
 
 
+   
 urlpatterns = [
-    path('api/v1/login/', login_user, name='user-login'),
-    path('api/v1/logout/', signout, name='logout-endpoint'),
-    path('api/v1/password-reset/', PasswordReset.as_view()),
+    path('api/v1/login/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/v1/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    # path('api/v1/login/', login_user, name='user-login'),
+    path('api/v1/logout/', LogoutView.as_view(), name='logout-endpoint'),
+    path('api/v1/password-reset/<str:email>', PasswordReset.as_view()),
     path('api/v1/user/email-verifcation/token/', User_Email_Verification_Token, name='email-verification'),
     path('api/v1/user/registration/', UserRegistration.as_view()),
     path('api/v1/estate-admin/registration/', EstateAdminRegistration.as_view()),

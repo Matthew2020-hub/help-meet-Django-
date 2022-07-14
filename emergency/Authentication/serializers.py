@@ -1,12 +1,27 @@
 from .models import User, Estate
 from rest_framework import serializers
 import re
-
 import django.contrib.auth.password_validation as validators
 from django.core.exceptions import ValidationError
+from .validators import password_regex_pattern
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
 
-regex = "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*+=]).{8,}$"
 
+"""Simple JWT Serializer configuration"""
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+
+        # Add custom claims
+        token['email'] = user.email
+        # ...
+
+        return token
+
+class MyTokenObtainPairView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
 
 class ListUserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -14,53 +29,25 @@ class ListUserSerializer(serializers.ModelSerializer):
         model=User
         fields = [
             'email', 'house_address',
-            'name', 'estate_name', 'tenant_id',
-            "estate"
+            'name', 'estate_name', 'tenant_id'
             ]
 
 
 """A User serializer"""
 class UserSerializer(serializers.ModelSerializer):
-
+    estate_id = serializers.CharField(max_length=15)
+    password = serializers.CharField(validators=[password_regex_pattern])
     class Meta:
         model = User
         fields = [
             'email', 'house_address', 'password', 
-            'name', 'estate_name', 'tenant_id'
+            'name', 'estate_name', 'tenant_id', 'estate_id'
             ]
         extra_kwargs = {
             'password':{ 
                 'write_only':True
             },
         }
-    def validate(self, data):
-   
-        """Checks for password strength. It takes in a regex and a password argument
-        returns an error if password doesn't match the regex
-        """
-        password = data.get("password")
-        if not re.match(regex, password):
-            raise serializers.ValidationError({
-                'password':'Your Password Is Weak',
-                'Hint': 'Min. 8 characters, 1 Uppercase, 1 lowercase, 1 number, and 1 special character'
-            })
-        
-        return data
-
-    def save(self):
-        user = User(
-            email=self.validated_data['email'],
-            name=self.validated_data['name'],
-            estate_name=self.validated_data['estate_name'],
-            house_address=self.validated_data['house_address'],    
-        )
-        password = self.validated_data['password']
-        user.set_password(password)
-        user.is_active = True
-        user.is_user = True
-        # user.save()
-        # Room.objects.get_or_create(user=user)
-        return super().save() 
 
 
 
@@ -68,7 +55,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 """A User serializer"""
 class EstateAdminSerializer(serializers.ModelSerializer):
-
+    password = serializers.CharField(validators=[password_regex_pattern])
     class Meta:
         model = User
         fields = [
@@ -79,27 +66,7 @@ class EstateAdminSerializer(serializers.ModelSerializer):
                 'write_only':True
             },
         } 
-
-    def validate(self, password: str):
-        """Checks for password strength. It takes in a regex and a password argument
-        returns an error if password doesn't match the regex
-        """
-        if not re.match(regex, password):
-            raise serializers.ValidationError({
-                'password':'Your Password Is Weak',
-                'Hint': 'Min. 8 characters, 1 Uppercase, 1 lowercase, 1 number, and 1 special character'
-            })
-        return password
-
-    def save(self):
-        user = User(
-            email=self.validated_data['email'],    
-        )
-        password = self.validated_data['password']
-        user.set_password(password)
-        user.is_active = True
-        user.is_estate_admin = True
-        return super().save()
+ 
 
 
 class EstateSerializer(serializers.ModelSerializer):
@@ -123,19 +90,24 @@ class EstateSerializer(serializers.ModelSerializer):
             estate_country=self.validated_data['estate_country'],
             estate_address=self.validated_data['estate_address'],     
         )
-    
-        super().save()
-        return estate
+     
+        return estate.save()
 
 
 
+class ReturnUserInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        depth=1
+        model = User
+        fields = ['name', 'email', 'house_address', 'date_joined']  
 
-class EsatatesSerializer(serializers.ModelSerializer):
+
+class EstatesSerializer(serializers.ModelSerializer):
+    member = ReturnUserInfoSerializer(read_only=True)
     class Meta:
         depth=1
         model = Estate
-        fields = ["estate_name", "estate_address", "estate_country", "estate_id", 'user_serializer', 'member']        
-
+        fields = ["estate_name", "estate_address", "estate_country", "estate_id",  'member']  
 
 
 
@@ -158,11 +130,7 @@ class CustomPasswordResetSerializer(serializers.Serializer):
         style={'input_type':'password'}, 
         write_only=True
         )
-    confirm_password = serializers.CharField(
-        max_length=100, min_length=8, 
-        style={'input_type':'password'}, 
-        write_only=True
-        )
+
 
 
 
