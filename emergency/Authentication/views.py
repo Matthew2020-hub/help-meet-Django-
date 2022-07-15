@@ -323,6 +323,8 @@ class LogoutView(APIView):
 
 
 class PasswordReset(APIView):
+    
+    "A Password Reset class"
     permisssion_classes = [AllowAny]
     def put(self, request, email):
         # email = request.GET.get('email')
