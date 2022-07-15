@@ -1,48 +1,28 @@
 
-# Create your views here.
-import email
-from pkg_resources import get_supported_platform
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.decorators import api_view,permission_classes
 from .serializers import( 
     EstateSerializer, UserSerializer, 
-    LoginSerializer, EstateAdminSerializer,
+    EstateAdminSerializer,
     CustomPasswordResetSerializer, EstatesSerializer,
     ListUserSerializer, MyTokenObtainPairSerializer
 )
 from .models import User, Estate
 from django.shortcuts import get_object_or_404
-from rest_framework import serializers, viewsets
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, mixins, generics
 from rest_framework.views import APIView
-from rest_framework import generics
-from rest_framework import mixins
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated,AllowAny
-from rest_framework.authtoken.models import Token
-from django.contrib.auth import logout, login
-from django.utils.translation import gettext_lazy as _
 
-from rest_framework import status
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.shortcuts import render
+from django.utils.translation import gettext_lazy as _
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
-from rest_framework.exceptions import AuthenticationFailed
-import datetime
-from django.contrib.sites.shortcuts import get_current_site
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 import os
 import environ
 from django.conf import settings
 import jwt
-# from Authentication.serializers import
 from mailjet_rest import Client
 from rest_framework_simplejwt.views import TokenObtainPairView
-from django.contrib.auth import authenticate
-
-from rest_framework_simplejwt.backends import TokenBackend
 
 
 
@@ -60,6 +40,15 @@ api_secret = os.environ.get('MJ_API_SECRET')
 
 
 class EstateRegistration(APIView):
+    """A estate registration class
+    an endpoint that permits only an admin who is a registered user to register an estate
+    Returns: HTTP_201_created, a serializer data
+
+    Raises: HTTP_404_NOT_FOUND- an error message if estate has no admin as a registered user
+    Raises: HTTP_401_UNAUTHORIZED- returns an error message if the estate's admin isn't a verified user
+    Raises: HTTP_401_UNAUTHORIZED- returns an error if the estate is not being registered by an admin
+    
+    """
     authentication_classes = [TokenAuthentication]
     permission_classes = [AllowAny]
 
@@ -82,6 +71,12 @@ class EstateRegistration(APIView):
        
 
 class EstateAdminRegistration(APIView):
+    """A estate admin registration class
+    Returns: HTTP_201_created- returns a sucess message
+
+    Raises: an error is serializer data is not valid
+    
+    """
     serializer_class = EstateAdminSerializer
     permisssion_classes = [AllowAny]
 
@@ -180,6 +175,12 @@ class UserAPIView(generics.GenericAPIView, mixins.ListModelMixin):
 
 
 class UserRegistration(APIView):
+    """A user registration class
+    an endpoint that permits a user to register only if the user's estate exist in the database
+    Returns: HTTP_201_created, a serializer data and a success message
+    Raises: HTTP_404_NOT_FOUND- an error message if estate does not exist in the database
+    
+    """
     serializer_class = UserSerializer
     permisssion_classes = [AllowAny]
 
@@ -248,8 +249,9 @@ def User_Email_Verification_Token( request, email):
 
 
 
-"""Verify user email endpoint"""
 class VerifyUserEmail(APIView):
+    
+    """Verify user email endpoint"""
     permisssion_classes = [AllowAny]
     def get(self, request):
         token = request.GET.get('token')
@@ -299,11 +301,19 @@ class MyTokenObtainPairView(TokenObtainPairView):
    
 
 class LogoutView(APIView):
-    permission_classes = (IsAuthenticated,)
+    # permission_classes = (IsAuthenticated,)
 
     def post(self, request):
         try:
-            refresh_token = request.data["refresh_token"]
+            refresh_token = request.GET.get["access_token"]
+            print(request.data)
+
+            token = request.GET.get('token')
+            access_token_str = str(token)
+            # access token verification
+            access_token_obj = AccessToken(access_token_str) 
+            print(access_token_obj)
+            print(refresh_token)
             token = RefreshToken(refresh_token)
             token.blacklist()
             return Response(status=status.HTTP_205_RESET_CONTENT)

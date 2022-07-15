@@ -71,7 +71,6 @@ class EstateAdminSerializer(serializers.ModelSerializer):
 
 class EstateSerializer(serializers.ModelSerializer):
     estate_admin_email = serializers.EmailField()
-
     class Meta:
         model = Estate
         fields = [
@@ -83,7 +82,6 @@ class EstateSerializer(serializers.ModelSerializer):
                 "read_only": True
             }
         }
-
     def save(self):
         estate = Estate(
             estate_name=self.validated_data['estate_name'],
