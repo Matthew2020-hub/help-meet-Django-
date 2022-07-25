@@ -7,22 +7,26 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('Authentication', '0002_remove_user_username'),
+        ("Authentication", "0002_remove_user_username"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='user',
-            name='is_estate_admin',
+            model_name="user",
+            name="is_estate_admin",
         ),
         migrations.AlterField(
-            model_name='estate',
-            name='public_id',
-            field=models.CharField(default=Authentication.estate_code_generator.generate_short_id, max_length=15, unique=True),
+            model_name="estate",
+            name="public_id",
+            field=models.CharField(
+                default=Authentication.estate_code_generator.generate_short_id,
+                max_length=15,
+                unique=True,
+            ),
         ),
         migrations.AlterField(
-            model_name='user',
-            name='is_active',
+            model_name="user",
+            name="is_active",
             field=models.BooleanField(default=True),
         ),
     ]
